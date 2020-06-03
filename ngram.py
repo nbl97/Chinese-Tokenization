@@ -3,7 +3,7 @@ import os
 
 class Config:
 	ngram = 2
-	file = "rmrb.txt"
+	ori_file = "rmrb.txt"
 	modi_file = "rmrb_modified.txt"
 
 def pre_process(ustring):
@@ -40,7 +40,7 @@ def readfile(cfg):
 		f = open(cfg.modi_file,'r', encoding='utf-8')		
 		lines = f.readlines()
 	else:
-		f = open(cfg.file,'r', encoding='utf-8')
+		f = open(cfg.ori_file,'r', encoding='utf-8')
 		lines = f.readlines()		
 		lines = [pre_process(l) for l in lines]
 		fw = open(cfg.modi_file, 'w',encoding="utf-8")
@@ -145,6 +145,10 @@ def get_prob_fun(lines, cfg):
 		"p3": p3,
 	}
 
+def get_ngram_prob():
+	cfg = Config()
+	lines = readfile(cfg)
+	return get_prob_fun(lines, cfg)
 
 
 def dfs(e, cnt, ans, pro):
@@ -200,4 +204,3 @@ if __name__ == '__main__':
 	s = "迈向充满希望的新世纪一九九八新年讲话"
 	pro = gene_proposal(s, dict_set)
 	print(pro)
-

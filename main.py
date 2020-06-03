@@ -37,10 +37,9 @@ if __name__ == "__main__":
         cands = gene_proposal(ori_sen, dicts)
         print('cand gets')
         scores = list()
-        for cand in cands[:6]:
-            print(cand.split(' '))
+        for cand in cands:
             scores.append(model.calc_prob(cand.split(' ')))
+            print(cand.split(' '), scores[-1])
         idx = np.argmax(scores)
-        print(idx)
         print('result: ', cands[idx])
         
