@@ -3,7 +3,7 @@ import os
 
 class Config:
 	ngram = 2
-	ori_file = "rmrb.txt"
+	file = "rmrb.txt"
 	modi_file = "rmrb_modified.txt"
 
 def pre_process(ustring):
@@ -40,7 +40,7 @@ def readfile(cfg):
 		f = open(cfg.modi_file,'r', encoding='utf-8')		
 		lines = f.readlines()
 	else:
-		f = open(cfg.ori_file,'r', encoding='utf-8')
+		f = open(cfg.file,'r', encoding='utf-8')
 		lines = f.readlines()		
 		lines = [pre_process(l) for l in lines]
 		fw = open(cfg.modi_file, 'w',encoding="utf-8")
@@ -145,10 +145,6 @@ def get_prob_fun(lines, cfg):
 		"p3": p3,
 	}
 
-def get_ngram_prob():
-	cfg = Config()
-	lines = readfile(cfg)
-	return get_prob_fun(lines, cfg)
 
 
 def dfs(e, cnt, ans, pro):
@@ -157,7 +153,7 @@ def dfs(e, cnt, ans, pro):
 		return
 	for i in range(cnt+1, len(e)):
 		if e[cnt][i] == 1:
-			dfs(e, i, ans+str(i), pro)
+			dfs(e, i, ans+str(i)+" ", pro)
 
 def gene_proposal(sent, dict_set):
 	'''
@@ -183,6 +179,7 @@ def gene_proposal(sent, dict_set):
 	dfs(e,0,"", proposals)
 	ret = []
 	for p in proposals:
+		p = p.split()
 		last = 0
 		tmp = ""
 		for i in range(len(p)):
@@ -198,10 +195,9 @@ if __name__ == '__main__':
 	# lines = readfile(cfg)
 	# fs = get_prob_fun(lines, cfg)
 	dict_set = set()
-	dict_set.add("ABC")
-	dict_set.add("BCD")
-	pro = gene_proposal("ABCD", dict_set)
+	dict_set.add("充满希望")
+	dict_set.add("希望的新世纪")
+	s = "迈向充满希望的新世纪一九九八新年讲话"
+	pro = gene_proposal(s, dict_set)
 	print(pro)
 
-if __name__ == "__main__":
-	get_ngram_prob()
