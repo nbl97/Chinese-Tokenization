@@ -5,6 +5,8 @@ class Config:
 	ngram = 2
 	ori_file = "rmrb.txt"
 	modi_file = "rmrb_modified.txt"
+	word_max_len = 10
+	proposals_keep_ratio = 1.0
 
 def pre_process(ustring):
 	rstring = ""
@@ -16,6 +18,7 @@ def pre_process(ustring):
 			inside_code -= 65248
 
 		rstring += chr(inside_code)
+	
 	rstring = rstring.replace('[','')    
 	rstring = rstring.replace(']nt', '')
 	rstring = rstring.replace(']ns','')
@@ -30,8 +33,8 @@ def readfile(cfg):
 	'''
 	return:
 		[
-			[['敲', '/x'], ['键盘', '/x']],
-			[['你', '/x'], ['好', '/x'], ['吗', '/x']],
+			[['敲', 'x'], ['键盘', 'x']],
+			[['你', 'x'], ['好', 'x'], ['吗', 'x']],
 		]
 		这个结构就是万恶之首，设计得非常不好，superline比较好写
 		不知道后续是否有用，先保留着这个结构吧
@@ -53,11 +56,11 @@ def readfile(cfg):
 	return lines
 
 
-def add_one_on_dict(dct, ky):
+def add_value_on_dict(dct, ky, x):
 	if ky in dct.keys():
-		dct[ky] += 1
+		dct[ky] += x
 	else :
-		dct[ky] = 1
+		dct[ky] = x
 
 
 def get_prob_fun(lines, cfg):
@@ -96,8 +99,8 @@ def get_prob_fun(lines, cfg):
 		tmp_t = " ".join(super_line_t[i:j+1])
 		if tmp_w.find("<BOS> <EOS>") != -1 :
 			continue
-		add_one_on_dict(t_numN, tmp_t)
-		add_one_on_dict(w_numN, tmp_w)
+		add_value_on_dict(t_numN, tmp_t, 1)
+		add_value_on_dict(w_numN, tmp_w, 1)
 	
 	#calc t/w_numN_
 	for i in range(0, len(super_line_t)-(N-1)+1):
@@ -107,25 +110,22 @@ def get_prob_fun(lines, cfg):
 		tmp_t = " ".join(super_line_t[i:j+1])
 		if tmp_w.find("<BOS> <EOS>") != -1 :
 			continue
-		add_one_on_dict(t_numN_, tmp_t)
-		add_one_on_dict(w_numN_, tmp_w)
+		add_value_on_dict(t_numN_, tmp_t, 1)
+		add_value_on_dict(w_numN_, tmp_w, 1)
 
 	# calc t/w_num1
 	for i in range(0, len(super_line_w)):
-		add_one_on_dict(t_num1, super_line_t[i])
-		add_one_on_dict(w_num1, super_line_w[i])
+		add_value_on_dict(t_num1, super_line_t[i], 1)
+		add_value_on_dict(w_num1, super_line_w[i], 1)
 
-	# calc p1: p(w|t) 
+	# calc p1: p(w|t) 	
 	for t in t_num1.keys():
-		for l in lines:
-			for i in l:
-				if i[-1] == t:
-					key = i[0] + ' ' + t
-					if key in p1.keys():
-						p1[key] += 1 / t_num1[t]
-					else:
-						p1[key] = 1 / t_num1[t]
-	
+		for i in range(len(super_line_w)):
+			if super_line_t[i] == t:
+				key = super_line_w[i] + ' ' + t
+				add_value_on_dict(p1, key, 1 / t_num1[t])
+
+
 	# calc p2: p(t|t,..,t)
 	for keysN in t_numN.keys():
 		tmp = keysN.split()
@@ -159,7 +159,8 @@ def dfs(e, cnt, ans, pro):
 		if e[cnt][i] == 1:
 			dfs(e, i, ans+str(i)+" ", pro)
 
-def gene_proposal(sent, dict_set):
+
+def gene_proposal(sent, dict_set, cfg):
 	'''
 	sent: str
 	dict_set: a set containing all words in the dictionary
@@ -176,31 +177,34 @@ def gene_proposal(sent, dict_set):
 		e[i][i+1] = 1
 	for i in range(n-1):
 		for j in range(i+1, n):
+			if j-i+1 > cfg.word_max_len: break
 			word = sent[i:j+1]
 			if word in dict_set:
-				e[i][j+1] = 1 				
+				e[i][j+1] = 1
 	proposals = []
-	dfs(e,0,"", proposals)
+	dfs(e,0,"0 ", proposals)
+	
 	ret = []
 	for p in proposals:
 		p = p.split()
-		last = 0
 		tmp = ""
-		for i in range(len(p)):
-			tmp += sent[last: int(p[i])] + " "
-			last = int(p[i])
+		for i in range(len(p)-1):
+			tmp += sent[int(p[i]):int(p[i+1])] + ' '			
 		tmp = tmp[:-1]
 		ret.append(tmp)
+	ret.sort(key=lambda x: len(x.split()))
 	return ret
 
 
 if __name__ == '__main__':
-	# cfg = Config()
-	# lines = readfile(cfg)
-	# fs = get_prob_fun(lines, cfg)
-	dict_set = set()
-	dict_set.add("充满希望")
-	dict_set.add("希望的新世纪")
-	s = "迈向充满希望的新世纪一九九八新年讲话"
-	pro = gene_proposal(s, dict_set)
-	print(pro)
+	cfg = Config()
+	lines = readfile(cfg)
+	fs = get_prob_fun(lines, cfg)
+	# dict_set = set()
+	# dict_set.add("充满希望")
+	# dict_set.add("希望的新世纪")
+	# dict_set.add("新世纪")
+
+	# s = "迈向充满希望的新世纪一九九八新年讲话"
+	# pro = gene_proposal(s, dict_set, cfg)
+	# print(pro)
