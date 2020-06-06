@@ -1,5 +1,8 @@
 import numpy as np 
 import os
+import itertools
+import re
+
 
 class Config:
 	ngram = 2
@@ -10,6 +13,7 @@ class Config:
 
 def pre_process(ustring):
 	rstring = ""
+	# 全角改半角
 	for uchar in ustring:
 		inside_code=ord(uchar)
 		if inside_code == 12288:     
@@ -19,6 +23,22 @@ def pre_process(ustring):
 
 		rstring += chr(inside_code)
 	
+	# 若有，去掉开头的日期
+	p = rstring.find(' ')
+	if rstring[:p].replace('-','').isdigit() == True:
+		rstring = rstring[p+1:]
+
+	# 所有数字改为 0
+	r = re.findall(r"\d+\.?\d*",rstring)
+	for ri in r:
+		rstring = rstring.replace(ri,'0')
+	
+	# 所有英文单词改为 1
+	r = re.findall(r"[a-zA-Z]+",rstring)
+	for ri in r:
+		rstring = rstring.replace(ri,'1')
+
+	# 实体名词去掉注释
 	rstring = rstring.replace('[','')    
 	rstring = rstring.replace(']nt', '')
 	rstring = rstring.replace(']ns','')
@@ -32,12 +52,8 @@ def pre_process(ustring):
 def readfile(cfg):
 	'''
 	return:
-		[
-			[['敲', 'x'], ['键盘', 'x']],
-			[['你', 'x'], ['好', 'x'], ['吗', 'x']],
-		]
-		这个结构就是万恶之首，设计得非常不好，superline比较好写
-		不知道后续是否有用，先保留着这个结构吧
+		sp_w = ['敲', '键盘',]
+		sp_t = ['x', 'x']
 	'''
 	if os.path.exists(cfg.modi_file):
 		f = open(cfg.modi_file,'r', encoding='utf-8')		
@@ -50,10 +66,22 @@ def readfile(cfg):
 		for l in lines:
 			fw.write(l)
 	
-	lines = [l.split() for l in lines]
-	for i in range(len(lines)):
-		lines[i] = [j.split('/') for j in lines[i]]
-	return lines
+	super_line_w, super_line_t = [], []
+	for l in lines:
+		l = l.split()
+		super_line_w.append('<BOS>')
+		super_line_t.append('bos')
+		for word in l:
+			word = word.split('/')
+			super_line_w.append(word[0])
+			super_line_t.append(word[-1])
+		super_line_w.append('<EOS>')
+		super_line_t.append('eos')
+	
+	return {
+		"w": super_line_w,
+		"t": super_line_t, 
+	}
 
 
 def add_value_on_dict(dct, ky, x):
@@ -63,7 +91,7 @@ def add_value_on_dict(dct, ky, x):
 		dct[ky] = x
 
 
-def get_prob_fun(lines, cfg):
+def get_prob_fun(superline, cfg):
 	N = cfg.ngram
 	p1 = {} # p(w|t) 
 	p2 = {} # p(t|t,..,t)
@@ -78,18 +106,8 @@ def get_prob_fun(lines, cfg):
 	t_numN_ = {}
 	w_numN_ = {}
 	
-	# merge all sentence into one sentence
-	super_line_w = [] 
-	super_line_t = [] 
-	for l in lines:
-		super_line_w.append('<BOS>')
-		super_line_t.append('bos')
-		for i in l:
-			super_line_w.append(i[0])
-			super_line_t.append(i[-1])
-		super_line_w.append('<EOS>')
-		super_line_t.append('eos')
-
+	super_line_w = superline['w']
+	super_line_t = superline['t']
 
 	#calc t/w_numN
 	for i in range(0, len(super_line_t)-N+1):
@@ -125,7 +143,6 @@ def get_prob_fun(lines, cfg):
 				key = super_line_w[i] + ' ' + t
 				add_value_on_dict(p1, key, 1 / t_num1[t])
 
-
 	# calc p2: p(t|t,..,t)
 	for keysN in t_numN.keys():
 		tmp = keysN.split()
@@ -138,12 +155,12 @@ def get_prob_fun(lines, cfg):
 		keysN_ = " ".join(tmp[:-1])
 		p3[keysN] = w_numN[keysN] / w_numN_[keysN_]
 
-
 	return {
 		"p1": p1,
 		"p2": p2,
 		"p3": p3,
 	}
+
 
 def get_ngram_prob():
 	cfg = Config()
@@ -172,6 +189,7 @@ def gene_proposal(sent, dict_set, cfg):
 		]
 	'''
 	n = len(sent)
+	if n == 0: return []
 	e = [[0]*(n+1) for i in range(n+1)]
 	for i in range(n):
 		e[i][i+1] = 1
@@ -192,19 +210,50 @@ def gene_proposal(sent, dict_set, cfg):
 			tmp += sent[int(p[i]):int(p[i+1])] + ' '			
 		tmp = tmp[:-1]
 		ret.append(tmp)
-	ret.sort(key=lambda x: len(x.split()))
 	return ret
+
+
+def union(old, new):
+	if len(old) == 0: return new 
+	old =  list(itertools.product(old, new))
+	for i in range(len(old)):
+		old[i] = old[i][0] + ' ' + old[i][1]
+	return old
+
+
+def get_proposals(sent, dict_set, cfg):
+	sent = sent.replace(' ', '')
+	digit = re.findall(r"\d+\.?\d*",sent)
+	english = r = re.findall(r"[a-zA-Z]+",sent)
+	for d in digit:
+		sent = sent.replace(d, '0')
+	for e in english:
+		sent = sent.replace(e, '1')
+
+	chinese_punc = set(["，", "。", "？", "！", "；", "《", "》", "“", "”"])
+	props = []
+	
+	last = 0
+	for i in range(len(sent)):
+		if sent[i] in chinese_punc or i == len(sent)-1:
+			tmp = gene_proposal(sent[last:i+1], dict_set, cfg)
+			last = i+1
+			props = union(props, tmp)
+
+	props.sort(key=lambda x: len(x.split()))
+
+	return digit, english, props
 
 
 if __name__ == '__main__':
 	cfg = Config()
-	lines = readfile(cfg)
-	fs = get_prob_fun(lines, cfg)
-	# dict_set = set()
-	# dict_set.add("充满希望")
-	# dict_set.add("希望的新世纪")
-	# dict_set.add("新世纪")
+	# superline = readfile(cfg)
+	# fs = get_prob_fun(superline, cfg)
+	dict_set = set()
+	dict_set.add("充满希望")
+	dict_set.add("希望的新世纪")
+	dict_set.add("新世纪")
 
-	# s = "迈向充满希望的新世纪一九九八新年讲话"
-	# pro = gene_proposal(s, dict_set, cfg)
-	# print(pro)
+	s = "迈向，，，充满123希望的word新世纪，一九九八新年讲话。"
+	digit, english, pro = get_proposals(s, dict_set, cfg)
+	print(pro)
