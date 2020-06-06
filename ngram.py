@@ -29,14 +29,10 @@ def pre_process(ustring, use_re = 1):
 
 	if use_re == 1:
 		# 所有数字改为 0
-		r = re.findall(r"\d+\.?\d*",rstr)
-		for ri in r:
-			rstr = rstr.replace(ri,'0')
-		
+		rstr = re.sub(r"\d+\.?\d*", "0", rstr)		
 		# 所有英文单词改为 1
-		r = re.findall(r"[a-zA-Z]+\/",rstr)
-		for ri in r:
-			rstr = rstr.replace(ri,'1/')
+		rstr = re.sub(r"[a-zA-Z]+\/", "1/", rstr)
+
 
 	# 实体名词去掉注释
 	rstr = rstr.replace('[','')    
@@ -225,10 +221,10 @@ def get_proposals(sent, dict_set, cfg):
 	sent = sent.replace(' ', '')
 	digit = re.findall(r"\d+\.?\d*",sent)
 	english = r = re.findall(r"[a-zA-Z]+",sent)
-	for d in digit:
-		sent = sent.replace(d, '0')
-	for e in english:
-		sent = sent.replace(e, '1')
+
+	sent = re.sub(r"\d+\.?\d*", "0", sent)		
+	sent = re.sub(r"[a-zA-Z]+", "1", sent)
+
 
 	chinese_punc = set(["，", "。", "？", "！", "；", "《", "》", "“", "”"])
 	props = []
