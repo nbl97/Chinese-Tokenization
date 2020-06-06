@@ -10,8 +10,9 @@ class Config:
 	modi_file = "rmrb_modified.txt"
 	word_max_len = 10
 	proposals_keep_ratio = 1.0
+	use_re = 1
 
-def pre_process(ustring):
+def pre_process(ustring, use_re = 1):
 	rstring = ""
 	# 全角改半角
 	for uchar in ustring:
@@ -25,18 +26,19 @@ def pre_process(ustring):
 	
 	# 若有，去掉开头的日期
 	p = rstring.find(' ')
-	if rstring[:p].replace('-','').isdigit() == True:
-		rstring = rstring[p+1:]
+	if p != -1 and rstring[:p-2].replace('-','').isdigit() == True:
+		rstring = rstring[p+1:].lstrip()
 
-	# 所有数字改为 0
-	r = re.findall(r"\d+\.?\d*",rstring)
-	for ri in r:
-		rstring = rstring.replace(ri,'0')
-	
-	# 所有英文单词改为 1
-	r = re.findall(r"[a-zA-Z]+",rstring)
-	for ri in r:
-		rstring = rstring.replace(ri,'1')
+	if use_re == 1:
+		# 所有数字改为 0
+		r = re.findall(r"\d+\.?\d*",rstring)
+		for ri in r:
+			rstring = rstring.replace(ri,'0')
+		
+		# 所有英文单词改为 1
+		r = re.findall(r"[a-zA-Z]+\/",rstring)
+		for ri in r:
+			rstring = rstring.replace(ri,'1/')
 
 	# 实体名词去掉注释
 	rstring = rstring.replace('[','')    
@@ -61,7 +63,7 @@ def readfile(cfg):
 	else:
 		f = open(cfg.ori_file,'r', encoding='utf-8')
 		lines = f.readlines()		
-		lines = [pre_process(l) for l in lines]
+		lines = [pre_process(l, cfg.use_re) for l in lines]
 		fw = open(cfg.modi_file, 'w',encoding="utf-8")
 		for l in lines:
 			fw.write(l)
@@ -247,13 +249,13 @@ def get_proposals(sent, dict_set, cfg):
 
 if __name__ == '__main__':
 	cfg = Config()
-	# superline = readfile(cfg)
+	superline = readfile(cfg)
 	# fs = get_prob_fun(superline, cfg)
-	dict_set = set()
-	dict_set.add("充满希望")
-	dict_set.add("希望的新世纪")
-	dict_set.add("新世纪")
+	# dict_set = set()
+	# dict_set.add("充满希望")
+	# dict_set.add("希望的新世纪")
+	# dict_set.add("新世纪")
 
-	s = "迈向，，，充满123希望的word新世纪，一九九八新年讲话。"
-	digit, english, pro = get_proposals(s, dict_set, cfg)
-	print(pro)
+	# s = "迈向，，，充满123希望的word新世纪，一九九八新年讲话。"
+	# digit, english, pro = get_proposals(s, dict_set, cfg)
+	# print(pro)
