@@ -4,6 +4,7 @@ import json
 from ngram import get_ngram_prob, get_proposals, Config, pre_process
 from hmm_new import HMM2 as HMM, HMM_word
 from evaluation import evaluateSet
+from Dict import Dict 
 
 from tqdm import tqdm
 import time
@@ -31,7 +32,7 @@ def get_test_sets():
             test_set.append(idata)
             dicts.extend(idata)
 
-    dicts = list(set(dicts))        
+    dicts = list(set(dicts))
     return test_set, dicts
 
 
@@ -50,22 +51,26 @@ if __name__ == "__main__":
         params = json.load(f)
         f.close()
     else:
-        params = get_ngram_prob()
+        params = get_ngram_prob(cfg)
         f = open(param_file, 'w', encoding='utf-8')
         json.dump(params, f)
         f.close()
     test_targets, dicts = get_test_sets()
 
+    dicts = Dict(dicts, data_structure="set") # or "set"
+
     # Build an HMM model
     model = HMM(params['p2'], params['p1'])
     results = []
-    for sen in tqdm(test_targets[:10]):
+    tot = 0
+    for sen in (test_targets[:10]):
         # Get candidates
         ori_sen = ''.join(sen)
         print('input : ', ori_sen)
         pro_st_time = time.time()
         nums, words, cands = get_proposals(ori_sen, dicts, cfg)
-        print('pro_time: ', time.time() - pro_st_time)
+        tot += time.time() - pro_st_time
+        # print('pro_time: ', time.time() - pro_st_time)
         print(len(cands), 'cand gets')
 
         # Calculate Score for each candidates
@@ -76,7 +81,7 @@ if __name__ == "__main__":
         print('pro_time: ', time.time() - for_st_time)
         idx = np.argmax(scores)
         results.append(cands[idx].split(' '))
-    
+    print(tot)
     test_targets = [[changenum(word) for word in sen] for sen in test_targets]
     evaluateSet(results, test_targets)
 
