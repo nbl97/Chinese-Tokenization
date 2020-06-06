@@ -2,7 +2,7 @@ import numpy as np
 import os
 import itertools
 import re
-
+import ahocorasick
 
 class Config:
 	ngram = 2
@@ -158,8 +158,7 @@ def get_prob_fun(superline, cfg):
 	}
 
 
-def get_ngram_prob():
-	cfg = Config()
+def get_ngram_prob(cfg):
 	lines = readfile(cfg)
 	return get_prob_fun(lines, cfg)
 
@@ -209,6 +208,42 @@ def gene_proposal(sent, dict_set, cfg):
 	return ret
 
 
+def gene_proposal2(sent, dict_set, cfg):
+	'''
+	sent: str
+	dict_set: a set containing all words in the dictionary
+	return:
+		[
+			"a b c d",
+			"ab cd",
+			"a bc d",
+		]
+	'''
+	n = len(sent)
+	if n == 0: return []
+	e = [[0]*(n+1) for i in range(n+1)]
+	for i in range(n):
+		e[i][i+1] = 1
+	
+	have = list(dict_set.iter(sent))
+	for end, (_, word) in have:
+		e[end-len(word)+1][end+1] = 1
+
+	proposals = []
+	dfs(e,0,"0 ", proposals)
+	
+	ret = []
+	for p in proposals:
+		p = p.split()
+		tmp = ""
+		for i in range(len(p)-1):
+			tmp += sent[int(p[i]):int(p[i+1])] + ' '			
+		tmp = tmp[:-1]
+		ret.append(tmp)
+	return ret
+
+
+
 def union(old, new):
 	if len(old) == 0: return new 
 	old =  list(itertools.product(old, new))
@@ -233,7 +268,10 @@ def get_proposals(sent, dict_set, cfg):
 	last = 0
 	for i in range(len(sent)):
 		if sent[i] in chinese_punc or i == len(sent)-1:
-			tmp = gene_proposal(sent[last:i+1], dict_set, cfg)
+			if dict_set.data_structure == "ac":
+				tmp = gene_proposal2(sent[last:i+1], dict_set.A, cfg)
+			if dict_set.data_structure == "set":
+				tmp = gene_proposal(sent[last:i+1], dict_set.A, cfg)
 			last = i+1
 			props = union(props, tmp)
 
@@ -245,7 +283,7 @@ def get_proposals(sent, dict_set, cfg):
 if __name__ == '__main__':
 	cfg = Config()
 	superline = readfile(cfg)
-	# fs = get_prob_fun(superline, cfg)
+	fs = get_prob_fun(superline, cfg)
 	# dict_set = set()
 	# dict_set.add("充满希望")
 	# dict_set.add("希望的新世纪")
