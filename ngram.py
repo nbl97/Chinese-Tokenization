@@ -13,42 +13,40 @@ class Config:
 	use_re = 1
 
 def pre_process(ustring, use_re = 1):
-	rstring = ""
-	# 全角改半角
+	rstr = ""
 	for uchar in ustring:
-		inside_code=ord(uchar)
-		if inside_code == 12288:     
-			inside_code = 32 
-		elif (inside_code >= 65281 and inside_code <= 65374):
-			inside_code -= 65248
-
-		rstring += chr(inside_code)
+		unic=ord(uchar)
+		if unic == 12288:
+			unic = 32
+		elif (65296 <= unic <= 65305) or (65345 <= unic <= 65370) or (65313 <= unic <= 65338):
+			unic -= 65248
+		rstr += chr(unic)
 	
 	# 若有，去掉开头的日期
-	p = rstring.find(' ')
-	if p != -1 and rstring[:p-2].replace('-','').isdigit() == True:
-		rstring = rstring[p+1:].lstrip()
+	p = rstr.find(' ')
+	if p != -1 and rstr[:p-2].replace('-','').isdigit() == True:
+		rstr = rstr[p+1:].lstrip()
 
 	if use_re == 1:
 		# 所有数字改为 0
-		r = re.findall(r"\d+\.?\d*",rstring)
+		r = re.findall(r"\d+\.?\d*",rstr)
 		for ri in r:
-			rstring = rstring.replace(ri,'0')
+			rstr = rstr.replace(ri,'0')
 		
 		# 所有英文单词改为 1
-		r = re.findall(r"[a-zA-Z]+\/",rstring)
+		r = re.findall(r"[a-zA-Z]+\/",rstr)
 		for ri in r:
-			rstring = rstring.replace(ri,'1/')
+			rstr = rstr.replace(ri,'1/')
 
 	# 实体名词去掉注释
-	rstring = rstring.replace('[','')    
-	rstring = rstring.replace(']nt', '')
-	rstring = rstring.replace(']ns','')
-	rstring = rstring.replace(']nz','')
-	rstring = rstring.replace(']l','')
-	rstring = rstring.replace(']i','')
+	rstr = rstr.replace('[','')    
+	rstr = rstr.replace(']nt', '')
+	rstr = rstr.replace(']ns','')
+	rstr = rstr.replace(']nz','')
+	rstr = rstr.replace(']l','')
+	rstr = rstr.replace(']i','')
 	
-	return rstring
+	return rstr
 
 
 def readfile(cfg):
