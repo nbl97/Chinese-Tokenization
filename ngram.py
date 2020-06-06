@@ -214,7 +214,8 @@ def union(old, new):
 	old =  list(itertools.product(old, new))
 	for i in range(len(old)):
 		old[i] = old[i][0] + ' ' + old[i][1]
-	return old
+	old.sort(key=lambda x: len(x.split()))
+	return old[:10]
 
 
 def get_proposals(sent, dict_set, cfg):
