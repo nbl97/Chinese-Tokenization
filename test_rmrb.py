@@ -2,7 +2,7 @@ import numpy as np
 import json
 
 from ngram import get_ngram_prob, get_proposals, Config, pre_process
-from hmm import HMM2 as HMM, HMM_word
+from hmm_new import HMM2 as HMM, HMM_word
 from evaluation import evaluateSet
 
 from tqdm import tqdm
