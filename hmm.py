@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-class HMM(object):
+class HMM2(object):
     def __init__(self, p_trans, p_emit):
         # initiate two kinds of probabilities
         self.p_trans = p_trans
@@ -41,22 +41,66 @@ class HMM(object):
             a[-1, j] = a[-2, j] * self.trans_prob(self.t_list[j], self.end_sgn)
         return sum(a[-1, :])
 
-class HMM_word(object):
-    def __init__(self, p_trans):
+'''
+class HMM3(object):
+    def __init__(self, p_trans, p_emit):
+        # initiate two kinds of probabilities
         self.p_trans = p_trans
+        #self.p_trans2 = p_trans2
+        self.p_emit = p_emit
+
+        self.t_list = list(set([k.split(' ')[1] for k in self.p_emit.keys()]))
+        self.t_len = len(self.t_list)
+        print(self.t_len, self.t_list)
+
+        self.start_sgn = 'bos'
+        self.end_sgn = 'eos'
+
+    def start_prob(self, term):
+        key = self.start_sgn + ' ' + term
+        return self.p_trans[key] if key in self.p_trans.keys() else 1E-8
+
+    def trans_prob(self, token1, token2):
+        key = token1 + ' ' + token2
+        return self.p_trans[key] if key in self.p_trans.keys() else 1E-8
+    
+    def emit_prob(self, term, token):
+        """
+        """
+        key = term + ' ' + token
+        return self.p_emit[key] if key in self.p_emit.keys() else 1E-8
+
+    def calc_prob(self, tokens):
+        a = np.zeros((len(tokens)+2, self.t_len))
+        for i, t in enumerate(self.t_list):
+            a[0, i, 0] = self.start_prob(t) * self.emit_prob(t, tokens[0])
+        for i in range(1, len(tokens)):
+            toke = tokens[i]
+            for j, t2 in enumerate(self.t_list):
+                for k, t1 in enumerate(self.t_list):
+                    a[i, j] += a[i-1, k] * self.trans_prob(t1, t2) * self.emit_prob(t2, toke)
+        for j in range(self.t_len):
+            a[-1, j] = a[-2, j] * self.trans_prob(self.t_list[j], self.end_sgn)
+        return sum(a[-1, :])
+'''
+
+class HMM_word(object):
+    def __init__(self, p_trans, bos = '<s>', eos = '</s>'):
+        self.p_trans = p_trans
+        self.bos = bos
+        self.eos = eos
 
     def trans(self, w1, w2):
         key = '%s %s'%(w1, w2)
         if key in self.p_trans.keys():
-            print(key, self.p_trans[key])
             return self.p_trans[key]
-        elif w2 != '</s>':
+        elif w2 != self.eos:
             return 1E-4**len(w2)
         else:
             return 1E-4**len(w1)
 
     def calc_prob(self, tokens):
-        tokens = ['<s>'] + tokens + ['</s>']
+        tokens = [self.bos] + tokens + [self.eos]
         prob = 1
         for w1, w2 in zip(tokens[:-1], tokens[1:]):
             prob *= self.trans(w1, w2)
@@ -68,7 +112,7 @@ class HMM_word(object):
         a = np.zeros((lens, lens))
         b = np.zeros((lens, lens),dtype = np.long)
         for i in range(4):
-            a[0, i] = self.trans('<s>', tokens[:i+1])
+            a[0, i] = self.trans(self.bos, tokens[:i+1])
             #print(0, i, a[0,i])
         for i in range(1, lens):
             for j in range(i, min(lens, i+4)):
@@ -81,14 +125,14 @@ class HMM_word(object):
                         
         k_old = lens - 1
         for i in range(lens):
-            a[i, lens-1] *= self.trans(tokens[i:], '</s>')
+            a[i, lens-1] *= self.trans(tokens[i:], self.eos)
         k = np.argmax(a[:, lens-1])
         splits = []
         while k > 0:
             splits.append(tokens[k:k_old+1])
             k, k_old = b[k, k_old], k-1
         splits.append(tokens[:k_old+1])
-        print(splits[::-1])
+        return splits[::-1]
 
 if __name__ == "__main__":
     filename = 'viterbi-tokenizer-master\\0603.mod-2gram'

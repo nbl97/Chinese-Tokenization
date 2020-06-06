@@ -21,6 +21,18 @@ def getSame(output, target):
             id2 += 1
     return right
 
+def evaluateSet(outputs, targets):
+    TP = 0
+    T = 0
+    P = 0
+    for output, target in zip(outputs, targets):
+        TP += getSame(output, target)
+        T += len(target)
+        P += len(output)
+    acc, rec = TP/P, TP/T
+    print('Accuracy: %.2f'%(acc * 100))
+    print('Recall  : %.2f'%(rec * 100))
+
 if __name__ == "__main__":
     print(getSame(['1', '23', '45', '6', '789'], ['12', '3', '456', '789']))
 
