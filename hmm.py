@@ -111,7 +111,7 @@ class HMM_word(object):
         lens = len(tokens)
         a = np.zeros((lens, lens))
         b = np.zeros((lens, lens),dtype = np.long)
-        for i in range(4):
+        for i in range(min(4, lens)):
             a[0, i] = self.trans(self.bos, tokens[:i+1])
             #print(0, i, a[0,i])
         for i in range(1, lens):

@@ -1,6 +1,11 @@
 import numpy
 
 def getSame(output, target):
+    """ Find how many splits are the same in output and target
+    
+    Args: output, target are like this : ['今天', '是', '好', '日子']
+    Return: A integer
+    """
     pos1, pos2 = 0, 0
     id1, id2 = 0, 0
     right = 0
@@ -32,6 +37,7 @@ def evaluateSet(outputs, targets):
     acc, rec = TP/P, TP/T
     print('Accuracy: %.2f'%(acc * 100))
     print('Recall  : %.2f'%(rec * 100))
+    print('F1 Score: %.4f'%(2 * acc * rec / (acc + rec)))
 
 if __name__ == "__main__":
     print(getSame(['1', '23', '45', '6', '789'], ['12', '3', '456', '789']))
