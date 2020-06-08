@@ -1,19 +1,10 @@
 import numpy as np 
 import os
-import itertools
 import re
-from Dict import Dict
-import heapq
+from dict import Dict
+from config import Config
 
 
-class Config:
-	ngram = 2
-	ori_file = "rmrb.txt"
-	modi_file = "rmrb_modified.txt"
-	word_max_len = 10
-	proposals_keep_ratio = 1.0
-	use_re = 1
-	subseq_num = 15
 
 def pre_process(ustring, use_re = 1):
 	rstr = ""
@@ -47,21 +38,20 @@ def pre_process(ustring, use_re = 1):
 	
 	return rstr
 
-
 def readfile(cfg):
 	'''
 	return:
 		sp_w = ['敲', '键盘',]
 		sp_t = ['x', 'x']
 	'''
-	if os.path.exists(cfg.modi_file):
-		f = open(cfg.modi_file,'r', encoding='utf-8')		
+	if os.path.exists(cfg.modified_train_set):
+		f = open(cfg.modified_train_set,'r', encoding='utf-8')		
 		lines = f.readlines()
 	else:
-		f = open(cfg.ori_file,'r', encoding='utf-8')
+		f = open(cfg.train_set,'r', encoding='utf-8')
 		lines = f.readlines()		
 		lines = [pre_process(l, cfg.use_re) for l in lines]
-		fw = open(cfg.modi_file, 'w',encoding="utf-8")
+		fw = open(cfg.modified_train_set, 'w',encoding="utf-8")
 		for l in lines:
 			fw.write(l)
 	
@@ -82,13 +72,11 @@ def readfile(cfg):
 		"t": super_line_t, 
 	}
 
-
 def add_value_on_dict(dct, ky, x):
 	if ky in dct.keys():
 		dct[ky] += x
 	else :
 		dct[ky] = x
-
 
 def calc_prob_fun(superline, cfg):
 	N = cfg.ngram
@@ -160,134 +148,15 @@ def calc_prob_fun(superline, cfg):
 		"p3": p3,
 	}
 
-
 def get_ngram_prob(cfg):
 	lines = readfile(cfg)
 	return calc_prob_fun(lines, cfg)
 
 
-def dfs(e, u, k, dis, nxt, vis):
-	n = len(e)
-	if vis[u] == True: return
-	vis[u] = True
-	if u == n - 1:
-		dis[u][0] = 0
-		return
-	
-	q = []
-	for v in range(u+1, n):
-		if e[u][v] == 1:
-			if vis[v] == False: dfs(e,v,k,dis,nxt,vis)
-			for j in range(k):
-				if dis[v][j] == 10000: break
-				if len(q) < k:
-					heapq.heappush(q, (-(dis[v][j] + 1), (v, j)))
-				elif -dis[v][j]-1 > q[0][0]:
-					_ = heapq.heappop(q)
-					heapq.heappush(q, (-(dis[v][j] + 1), (v, j)))
-	i = len(q)-1
-	while q:
-		d, (v, j) = heapq.heappop(q)
-		d = -d 
-		dis[u][i] = d 
-		nxt[u][i][0] = v
-		nxt[u][i][1] = j
-		i -= 1
-
-def get_path(u, k, nxt, p):
-	p.append(u)
-	# print(u, end=" ")
-	if u == len(nxt)-1: return
-	get_path(nxt[u][k][0], nxt[u][k][1], nxt, p)
-
-def get_all_path(u,K,dis,nxt):
-	props = []
-	for i in range(K):
-		if dis[u][i] == 10000: break
-		p = []
-		get_path(u,i,nxt,p)
-		props.append(p)
-	return props
-
-def gene_proposal(sent, dict, cfg, data_structure):
-	n = len(sent)
-	if n == 0: return []
-	e = [[0]*(n+1) for i in range(n+1)]
-	for i in range(n):
-		e[i][i+1] = 1
-	if data_structure == "set":	
-		for i in range(n-1):
-			for j in range(i+1, n):
-				if j-i+1 > cfg.word_max_len: break
-				word = sent[i:j+1]
-				if word in dict:
-					e[i][j+1] = 1
-	elif data_structure == "ac":
-		have = list(dict.iter(sent))
-		for end, (_, word) in have:
-			e[end-len(word)+1][end+1] = 1
-	
-	vis = [False] * (n+1)
-	dis = [[10000] * (cfg.subseq_num) for i in range(n+1)]
-	nxt = [[[-1] * 2 for i in range(cfg.subseq_num)] for j in range(n+1)]
-	dfs(e, 0, cfg.subseq_num, dis, nxt, vis)
-
-	proposals = get_all_path(0, cfg.subseq_num, dis, nxt)
-
-	ret = []
-	for p in proposals:
-		tmp = ""
-		for i in range(len(p)-1):			
-			tmp += sent[p[i]:p[i+1]] + ' '
-		tmp = tmp[:-1]
-		ret.append(tmp)
-	return ret
-
-
-def union(old, new):
-	if len(old) == 0: return new 
-	old =  list(itertools.product(old, new))
-	for i in range(len(old)):
-		old[i] = old[i][0] + ' ' + old[i][1]
-	
-	old.sort(key=lambda x: len(x.split()))
-	
-	if len(old) >= 10:
-		return old[:10]
-	else:
-		return old
-
-
-def get_proposals(sent, dict, cfg):
-	sent = sent.replace(' ', '')
-	if cfg.use_re:
-		digit = re.findall(r"\d+\.?\d*",sent)
-		english = r = re.findall(r"[a-zA-Z]+",sent)
-
-		sent = re.sub(r"\d+\.?\d*", "0", sent)		
-		sent = re.sub(r"[a-zA-Z]+", "1", sent)
-	else:
-		digit, english = None, None
-
-
-	chinese_punc = set(["，", "。", "？", "！", "；", "《", "》", "“", "”", "、"])
-	props = []
-	
-	last = 0
-	for i in range(len(sent)):
-		if sent[i] in chinese_punc or i == len(sent)-1:
-			tmp = gene_proposal(sent[last:i+1], dict.A, cfg, dict.data_structure)
-			last = i+1
-			props = union(props, tmp)
-
-	props.sort(key=lambda x: len(x.split()))
-
-	return digit, english, props
-
 
 if __name__ == '__main__':
 	cfg = Config()
-	# superline = readfile(cfg)
+	superline = readfile(cfg)
 	# fs = get_prob_fun(superline, cfg)
 	dict = Dict(["中共","总书记"],"set")
 	# s = "迈向，，，充满123希望的word新世纪，一九九八新年讲话。"

@@ -1,7 +1,9 @@
 import numpy as np
 import json
 
-from ngram import get_ngram_prob, get_proposals, Config, pre_process
+from ngram import get_ngram_prob, pre_process
+from generate_proposals import get_proposals
+from config import Config
 from hmm_new import HMM_word
 from evaluation import evaluateSet
 
@@ -15,11 +17,11 @@ def changenum(sent):
 	return sent
 
 from test_exp1 import get_test_sets, changenum
-from Dict import Dict
+from dict import Dict
 
 def test_dev():
     # load test set
-    nlpcc_f = open('train_data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
+    nlpcc_f = open('data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
     lines = nlpcc_f.readlines()
     lines = [changenum(line) for line in lines]
     lines = [line.strip().split() for line in lines]
@@ -68,7 +70,7 @@ def test_dev():
 
 
     # load test set without number and english replace
-    nlpcc_f = open('train_data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
+    nlpcc_f = open('data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
     lines = nlpcc_f.readlines()
     lines = [line.strip().split() for line in lines]
     nlpcc_f.close()
@@ -109,10 +111,15 @@ def test_dev():
         results.append(res)
     evaluateSet(results, lines)
 
+
 def test_train():
+    cfg = Config()
+    cfg.use_re = 0
+    params = get_ngram_prob(cfg)
 
     # load test set
-    nlpcc_f = open('train_data/nlpcc2016-word-seg-train.dat', 'r', encoding='utf-8')
+    cfg.test_set = 'data/nlpcc2016-word-seg-train.dat'
+    nlpcc_f = open(cfg.test_set, 'r', encoding='utf-8')
     ori_lines = nlpcc_f.readlines()
     lines = [changenum(line) for line in ori_lines]
     lines_wchange = [line.strip().split() for line in lines]
@@ -121,8 +128,9 @@ def test_train():
 
     # Simple n-gram model from weibo-train
     print("Simple 2-gram model from nlpcc, with re-match")
-    filename = 'weibo_model\\nlpcc_train.replace-2gram'
-    with open(filename, 'r', encoding='utf-8') as f:
+    # filename = 'weibo_model\\nlpcc_train.replace-2gram'
+    cfg.model_file = 'weibo_model\\nlpcc_train.replace-2gram'
+    with open(cfg.model_file, 'r', encoding='utf-8') as f:
         dict_lines = f.readlines()
         dict_lines = [l.strip().split('\t') for l in dict_lines]
         probs = {}
@@ -142,8 +150,9 @@ def test_train():
     
     # Simple n-gram model from weibo-train
     print("Simple 2-gram model from nlpcc, without re-match")
-    filename = 'weibo_model\\nlpcc_train.mod-2gram'
-    with open(filename, 'r', encoding='utf-8') as f:
+    cfg.model_file = 'weibo_model\\nlpcc_train.mod-2gram'
+    # filename = 'weibo_model\\nlpcc_train.mod-2gram'
+    with open(cfg.model_file, 'r', encoding='utf-8') as f:
         dict_lines = f.readlines()
         dict_lines = [l.strip().split('\t') for l in dict_lines]
         probs = {}
@@ -166,9 +175,6 @@ def test_train():
     # model from rmrb without re
     lines, _ = get_test_sets()
 
-    cfg = Config()
-    cfg.use_re = 0
-    params = get_ngram_prob(cfg)
     
     # Simple 2-gram model from rmrb-train
     print("Simple 2-gram model from rmrb, without re-match")
@@ -181,7 +187,7 @@ def test_train():
     evaluateSet(results, lines)
 
     
-    cfg = Config()
+    # cfg = Config()
     cfg.use_re = 1
     params = get_ngram_prob(cfg)
     

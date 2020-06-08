@@ -1,10 +1,12 @@
 import numpy as np
 import json
 
-from ngram import get_ngram_prob, get_proposals, Config, pre_process
+from ngram import get_ngram_prob, pre_process
+from generate_proposals import get_proposals
+from config import Config
 from hmm_new import HMM2 as HMM, HMM_word
 from evaluation import evaluateSet
-from Dict import Dict 
+from dict import Dict 
 
 from tqdm import tqdm
 import time
@@ -18,7 +20,7 @@ def get_test_sets():
             For example, [['今天', '是', '星期二', '。'], ...]
         dicts:    a list of all words that appear in the dataset
     '''
-    with open('rmrb.txt', 'r', encoding='utf-8') as f:
+    with open('data/rmrb.txt', 'r', encoding='utf-8') as f:
         lines = f.readlines()
         test_set = []
         dicts = []
@@ -45,20 +47,22 @@ if __name__ == "__main__":
     cfg = Config()
     cfg.use_re = 1
     cfg.use_hmm = 1
+    cfg.test_set = 'data/nlpcc2016-wordseg-dev.dat'
+    cfg.param_file = 'data/rmrb_ngram_changed.json' if cfg.use_re else 'data/rmrb_ngram_nochanged.json'
     # Generate n-grame parameters
-    param_file = 'rmrb_ngram_changed.json' if cfg.use_re else 'rmrb_ngram_nochanged.json'
-    if os.path.exists(param_file):
-        f = open(param_file, 'r', encoding='utf-8')
+    # param_file = 'data/rmrb_ngram_changed.json' if cfg.use_re else 'data/rmrb_ngram_nochanged.json'
+    if os.path.exists(cfg.param_file):
+        f = open(cfg.param_file, 'r', encoding='utf-8')
         params = json.load(f)
         f.close()
     else:
         params = get_ngram_prob(cfg)
-        f = open(param_file, 'w', encoding='utf-8')
+        f = open(cfg.param_file, 'w', encoding='utf-8')
         json.dump(params, f)
         f.close()
     test_targets, dicts = get_test_sets()
 
-    dicts = Dict(dicts, data_structure="set") # or "set"
+    dicts = Dict(dicts, data_structure="set")
 
     # Simple 2-gram model from rmrb-train
     model_rmrb = HMM_word(params['p3'], '<BOS>', '<EOS>')
@@ -88,7 +92,7 @@ if __name__ == "__main__":
     #exit()
     
     # load test set
-    nlpcc_f = open('train_data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
+    nlpcc_f = open(cfg.test_set, 'r', encoding='utf-8')
     ori_lines = nlpcc_f.readlines()
     lines_wochange = [line.strip().split() for line in ori_lines]
     nlpcc_f.close()
