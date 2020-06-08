@@ -9,7 +9,6 @@ class HMM2(object):
 
         self.t_list = list(set([k.split(' ')[1] for k in self.p_emit.keys()]))
         self.t_len = len(self.t_list)
-        print(self.t_len, self.t_list)
         self.cixin = {}
         for key in self.p_emit.keys():
             term, token = key.split()

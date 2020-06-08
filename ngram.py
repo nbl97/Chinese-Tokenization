@@ -260,11 +260,14 @@ def union(old, new):
 
 def get_proposals(sent, dict, cfg):
 	sent = sent.replace(' ', '')
-	digit = re.findall(r"\d+\.?\d*",sent)
-	english = r = re.findall(r"[a-zA-Z]+",sent)
+	if cfg.use_re:
+		digit = re.findall(r"\d+\.?\d*",sent)
+		english = r = re.findall(r"[a-zA-Z]+",sent)
 
-	sent = re.sub(r"\d+\.?\d*", "0", sent)		
-	sent = re.sub(r"[a-zA-Z]+", "1", sent)
+		sent = re.sub(r"\d+\.?\d*", "0", sent)		
+		sent = re.sub(r"[a-zA-Z]+", "1", sent)
+	else:
+		digit, english = None, None
 
 
 	chinese_punc = set(["，", "。", "？", "！", "；", "《", "》", "“", "”", "、"])
