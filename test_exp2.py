@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 import json
 
 from ngram import get_ngram_prob, pre_process
@@ -19,6 +20,8 @@ def changenum(sent):
 from test_exp1 import get_test_sets, changenum
 from dict import Dict
 
+
+# Single 2-gram model test on nlpcc-dev dataset
 def test_dev():
     # load test set
     nlpcc_f = open('data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
@@ -36,7 +39,7 @@ def test_dev():
     cfg = Config()
     params = get_ngram_prob(cfg)
     
-    print("Simple 2-gram model from rmrb, with re-match")
+    print("Simple 2-gram model trained from rmrb, test on nlpcc-dev, with re-match")
     # Simple 2-gram model from rmrb-train
     model_rmrb = HMM_word(params['p3'], '<BOS>', '<EOS>')
     results = []
@@ -48,8 +51,8 @@ def test_dev():
 
 
     # Simple n-gram model from weibo-train
-    print("Simple 2-gram model from nlpcc, with re-match")
-    filename = 'weibo_model\\nlpcc_train.replace-2gram'
+    print("Simple 2-gram model from nlpcc-train, test on nlpcc-dev, with re-match")
+    filename = 'weibo_model/nlpcc_train.replace-2gram'
     with open(filename, 'r', encoding='utf-8') as f:
         dict_lines = f.readlines()
         dict_lines = [l.strip().split('\t') for l in dict_lines]
@@ -75,8 +78,8 @@ def test_dev():
     lines = [line.strip().split() for line in lines]
     nlpcc_f.close()
     # Simple n-gram model from weibo-train
-    print("Simple 2-gram model from nlpcc, without re-match")
-    filename = 'weibo_model\\nlpcc_train.mod-2gram'
+    print("Simple 2-gram model from nlpcc-train, test on nlpcc-dev, without re-match")
+    filename = 'weibo_model/nlpcc_train.mod-2gram'
     with open(filename, 'r', encoding='utf-8') as f:
         dict_lines = f.readlines()
         dict_lines = [l.strip().split('\t') for l in dict_lines]
@@ -102,7 +105,7 @@ def test_dev():
     params = get_ngram_prob(cfg)
     
     # Simple 2-gram model from rmrb-train
-    print("Simple 2-gram model from rmrb, without re-match")
+    print("Simple 2-gram model from rmrb, test on nlpcc-dev, without re-match")
     model_rmrb = HMM_word(params['p3'], '<BOS>', '<EOS>')
     results = []
     for line in tqdm(lines):
@@ -112,12 +115,14 @@ def test_dev():
     evaluateSet(results, lines)
 
 
+# Simple 2-gram model test on training set
 def test_train():
     cfg = Config()
     cfg.use_re = 0
     params = get_ngram_prob(cfg)
 
-    # load test set
+    # Test on NLPCC-Train 
+    ## load dataset
     cfg.test_set = 'data/nlpcc2016-word-seg-train.dat'
     nlpcc_f = open(cfg.test_set, 'r', encoding='utf-8')
     ori_lines = nlpcc_f.readlines()
@@ -126,10 +131,10 @@ def test_train():
     lines_wochange = [line.strip().split() for line in ori_lines]
     nlpcc_f.close()
 
-    # Simple n-gram model from weibo-train
-    print("Simple 2-gram model from nlpcc, with re-match")
-    # filename = 'weibo_model\\nlpcc_train.replace-2gram'
-    cfg.model_file = 'weibo_model\\nlpcc_train.replace-2gram'
+    # Simple n-gram model trained from weibo-train
+    print("Simple 2-gram model from nlpcc-train, test on nlpcc-train, with re-match")
+    # filename = 'weibo_model/nlpcc_train.replace-2gram'
+    cfg.model_file = 'weibo_model/nlpcc_train.replace-2gram'
     with open(cfg.model_file, 'r', encoding='utf-8') as f:
         dict_lines = f.readlines()
         dict_lines = [l.strip().split('\t') for l in dict_lines]
@@ -149,9 +154,9 @@ def test_train():
 
     
     # Simple n-gram model from weibo-train
-    print("Simple 2-gram model from nlpcc, without re-match")
-    cfg.model_file = 'weibo_model\\nlpcc_train.mod-2gram'
-    # filename = 'weibo_model\\nlpcc_train.mod-2gram'
+    print("Simple 2-gram model from nlpcc-train, test on nlpcc-train, without re-match")
+    cfg.model_file = 'weibo_model/nlpcc_train.mod-2gram'
+    # filename = 'weibo_model/nlpcc_train.mod-2gram'
     with open(cfg.model_file, 'r', encoding='utf-8') as f:
         dict_lines = f.readlines()
         dict_lines = [l.strip().split('\t') for l in dict_lines]
@@ -170,14 +175,13 @@ def test_train():
     evaluateSet(results, lines_wochange)
 
 
-    # start rmrb test
-
+    # Test on PKU-rmrb dataset
     # model from rmrb without re
     lines, _ = get_test_sets()
 
     
     # Simple 2-gram model from rmrb-train
-    print("Simple 2-gram model from rmrb, without re-match")
+    print("Simple 2-gram model from rmrb, test on rmrb, without re-match")
     model_rmrb = HMM_word(params['p3'], '<BOS>', '<EOS>')
     results = []
     for line in tqdm(lines):
@@ -194,7 +198,7 @@ def test_train():
     lines = [[changenum(word) for word in line] for line in lines]
     
     # Simple 2-gram model from rmrb-train
-    print("Simple 2-gram model from rmrb, with re-match")
+    print("Simple 2-gram model from rmrb, test on rmrb, with re-match")
     model_rmrb = HMM_word(params['p3'], '<BOS>', '<EOS>')
     results = []
     for line in tqdm(lines):
@@ -204,4 +208,9 @@ def test_train():
     evaluateSet(results, lines)
 
 if __name__ == "__main__":
-    test_train()
+    if len(sys.argv)<2 or sys.argv[1] == 'test':
+        test_dev()
+    elif sys.argv[1] == 'train':
+        test_train()
+    else:
+        print("Error: Unexpected parameters. Please specify 'train' or 'test'")

@@ -101,7 +101,7 @@ if __name__ == '__main__':
     print("Train Set: PKU; Test Set: Weibo, w/o re-replacement")
     hmm_model, trans, log_total = build_model("BMES_corpus/rmrb_BMES.txt")
     # load test set without number and english replace
-    nlpcc_f = open('NLPCC-WordSeg-Weibo/datasets/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
+    nlpcc_f = open('data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
     lines = nlpcc_f.readlines()
     lines = [line.strip().split() for line in lines]
     nlpcc_f.close()
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     print("Train Set: PKU; Test Set: Weibo, w/  re-replacement")
     hmm_model, trans, log_total = build_model("BMES_corpus/rmrb_BMES_nonum.txt")
     # load test set without number and english replace
-    nlpcc_f = open('NLPCC-WordSeg-Weibo/datasets/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
+    nlpcc_f = open('data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
     lines = nlpcc_f.readlines()
     lines = [changenum(line) for line in lines]
     lines = [line.strip().split() for line in lines]
@@ -139,7 +139,7 @@ if __name__ == '__main__':
     hmm_model, trans, log_total = build_model("BMES_corpus/msr_BMES_nonum.txt")
 
     # load test set without number and english replace
-    nlpcc_f = open('NLPCC-WordSeg-Weibo/datasets/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
+    nlpcc_f = open('data/nlpcc2016-wordseg-dev.dat', 'r', encoding='utf-8')
     lines = nlpcc_f.readlines()
     lines = [changenum(line) for line in lines]
     lines = [line.strip().split() for line in lines]
