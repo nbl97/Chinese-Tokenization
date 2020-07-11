@@ -17,6 +17,7 @@ We develop with Python3.7 on Windows 10. However, we also run our codes successf
 The only special package we use is `ahocorasick`. Run the following command to install. Please note that it requires C++ lib. Install `Microsoft Visual C++ Build Tools` on Windows.
 
 `pip install pyahocorasick`
+
 `git clone https://github.com/volgachen/Chinese-Tokenization`
 
 ## Examples
